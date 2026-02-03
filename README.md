@@ -186,4 +186,4 @@ All logs are output to stdout with timestamps for easy parsing and redirection.
 
 ## Contributing
 
-Contributions are welcome! Please submit a pull request or create an issue to report bugs or suggest enhancements. For detailed instructions on contribution please review the "CONTRIBUTING" file.
+Contributions are not accepted at this time. This code may be used as-is or added too by consumers for their own purposes.
