@@ -1,10 +1,10 @@
 ![snyk-oss-category](https://github.com/snyk-labs/oss-images/blob/main/oss-community.jpg)
 
-# Project Name (Replace with your project's name)
+# CLI Target Cleanup
 
 ## Description
 
-This section provides a high-level overview of the project. It should clearly and concisely explain the project's purpose, functionality, and the problem it aims to solve.
+This tool automatically identifies and removes stale CLI-monitored targets from Snyk organizations within a Snyk Group. It helps maintain clean Snyk dashboards by removing targets that haven't been imported (via `snyk monitor`) within a configurable time threshold.
 
 ## Table of Contents
 
@@ -12,103 +12,177 @@ This section provides a high-level overview of the project. It should clearly an
 - [Installation and Setup](#installation-and-setup)
   - [Prerequisites](#prerequisites)
   - [Environment Setup](#environment-setup)
-  - [Installation Methods](#installation-methods)
-  - [Verification](#verification)
+  - [Installation](#installation)
 - [Usage](#usage)
 - [Features](#features)
 - [Configuration](#configuration)
   - [Parameter Descriptions](#parameter-descriptions)
-- [Output Sample + Description](#output-sample--description)
-- [Testing](#testing)
+- [Output Sample](#output-sample)
 - [Error Handling/Logging](#error-handlinglogging)
-- [Troubleshooting](#troubleshooting)
-- [Deployment](#deployment)
+- [Contributing](#contributing)
 
 ## Installation and Setup
 
-This section guides you through the necessary steps to set up and install the application.
-
 ### Prerequisites
 
-Before proceeding with the installation, ensure you have the following software and libraries installed. These are essential for the project to function correctly. [List specific requirements with version numbers and installation instructions]
+- Python 3.9 or higher
+- A Snyk API token with appropriate permissions
+- Access to the Snyk Group you want to clean up
+
 ### Environment Setup
 
-This subsection guides you through setting up your development environment. It includes information on:
+1. Set your Snyk API token as an environment variable:
 
-- **Virtual Environments:** Recommendations and instructions for creating virtual environments to isolate project dependencies and avoid conflicts (e.g., `venv`, `conda`, `nvm`).
-- **System Configuration:** Any necessary system-level configurations, such as environment variables, file permissions, or specific OS settings.
-- **Database Setup (if applicable):** Instructions for setting up and configuring the project's database, including connection details and initial schema creation.
-- **API Keys/Credentials (if applicable):** Guidance on obtaining and configuring API keys or other necessary credentials for external services.
+```bash
+export SNYK_TOKEN="your-snyk-api-token"
+```
 
-### Installation Methods
+You can find your API token in the Snyk UI under Account Settings > API Token.
 
-This subsection details the different ways to install the project:
+2. (Optional) If using a different Snyk API base URL (e.g., for EU or AU regions):
 
-- **Direct Installation:** Step-by-step instructions for installing the project directly from source or using package managers.
-- **Docker/Containerization:** Instructions for building and running the project using Docker containers, including `docker-compose.yml` examples if applicable.
-- **Automated Scripts:** Guidance on using provided installation scripts (e.g., `install.sh`, `install.ps1`) to automate the setup process.
-- **Platform-Specific Instructions:** Tailored installation instructions for different operating systems (Windows, macOS, Linux), addressing potential platform-specific issues.
+```bash
+export SNYK_API_BASE_URL="https://api.eu.snyk.io"  # For EU
+export SNYK_API_BASE_URL="https://api.au.snyk.io"  # For AU
+```
 
-### Verification
+### Installation
 
-Verify that the project is set up correctly. This subsection provides instructions on:
+1. Clone the repository:
 
-- **Running Verification Commands:** Commands to run that confirm the installation was successful and all dependencies are correctly installed.
-- **Basic Functionality Tests:** Simple tests to ensure the core functionality of the project is working as expected.
-- **Checking System Requirements:** Instructions on how to check that your system meets the minimum requirements for running the project.
+```bash
+git clone https://github.com/snyk-ps/cli-target-cleanup.git
+cd cli-target-cleanup
+```
+
+2. Create and activate a virtual environment (recommended):
+
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
+
+3. Install dependencies:
+
+```bash
+pip install -r requirements.txt
+```
 
 ## Usage
 
-This section provides step-by-step instructions on how to run the project. It includes examples of command-line usage, graphical interface interactions, or any other methods of running the application.
+The tool runs in **dry-run mode by default**, which means it will only report what would be deleted without actually deleting anything.
+
+### Basic Usage (Dry Run)
+
+```bash
+# Dry run with default 90-day threshold
+python -m src.main <group-id>
+```
+
+### Custom Threshold
+
+```bash
+# Dry run with custom threshold (e.g., 60 days)
+python -m src.main <group-id> --threshold-days 60
+```
+
+### Actually Delete Stale Targets
+
+```bash
+# Perform actual deletion (use with caution!)
+python -m src.main <group-id> --no-dry-run
+```
+
+### Verbose Output
+
+```bash
+# Enable verbose logging
+python -m src.main <group-id> --verbose
+```
+
+### Full Help
+
+```bash
+python -m src.main --help
+```
 
 ## Features
 
-This section provides a comprehensive list of the project's key functionalities. Each feature is described briefly, highlighting its purpose and how it contributes to the overall project.
+- **Group-wide Processing**: Automatically iterates through all organizations in a Snyk Group
+- **CLI Target Identification**: Specifically identifies targets created via `snyk monitor` CLI command
+- **Import Date Tracking**: Checks the last import date (when `snyk monitor` was last run) to determine staleness
+- **Configurable Threshold**: Set custom staleness threshold (default: 90 days)
+- **Dry Run Mode**: Safe by default - preview deletions before executing
+- **Comprehensive Logging**: Detailed logging of all operations
+- **Error Handling**: Graceful handling of API errors with retry logic
+- **Rate Limiting**: Automatic handling of Snyk API rate limits
 
 ## Configuration
 
-This section explains how to configure the project to suit different needs. It covers configuration files, command-line arguments, and any other settings that can be customized.
-
 ### Parameter Descriptions
 
-This subsection provides detailed descriptions of each configurable parameter, including their purpose, default values, and sample values. It helps users understand how to modify the project's behavior.
+| Parameter | Short | Default | Description |
+|-----------|-------|---------|-------------|
+| `GROUP_ID` | - | Required | The Snyk Group ID to process |
+| `--threshold-days` | `-t` | `90` | Number of days after which a target is considered stale |
+| `--dry-run` / `--no-dry-run` | - | `--dry-run` | If enabled, only report stale targets without deleting |
+| `--verbose` | `-v` | `False` | Enable verbose logging output |
 
-## Output Sample + Description
+### Environment Variables
 
-This section describes the format and meaning of the project's output. It includes examples of different output formats (e.g., text, JSON, CSV) and explains the significance of each field or value.
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SNYK_TOKEN` | - | Required. Your Snyk API token |
+| `SNYK_API_BASE_URL` | `https://api.snyk.io` | Snyk API base URL (change for EU/AU regions) |
 
-## Testing
+## Output Sample
 
-This section explains how to run tests and verify the project's functionality.
+### Dry Run Output
 
-- **Testing Dependencies:** Instructions on installing dependencies required for testing.
-- **Running Tests:** Commands and procedures for executing unit tests, integration tests, or other test suites.
-- **Test Coverage:** Information on test coverage and how to assess the thoroughness of the tests.
-- **Writing Tests:** Guidance on how to create new tests for the project.
+```
+2025-01-15 10:30:00 - INFO - Starting CLI target cleanup for group: abc123-def456
+2025-01-15 10:30:00 - INFO - Stale threshold: 90 days
+2025-01-15 10:30:00 - INFO - Dry run mode: enabled
+2025-01-15 10:30:00 - INFO - Fetching organizations for group: abc123-def456
+2025-01-15 10:30:01 - INFO - Processing organization: My Org (org-id-123)
+2025-01-15 10:30:02 - INFO -   STALE: my-project (120 days since last import)
+2025-01-15 10:30:03 - INFO -   STALE: another-project (never imported)
+
+============================================================
+SUMMARY
+============================================================
+2025-01-15 10:30:05 - INFO - Organizations processed: 1
+2025-01-15 10:30:05 - INFO - CLI targets found: 5
+2025-01-15 10:30:05 - INFO - Stale targets identified: 2
+2025-01-15 10:30:05 - INFO - Targets that WOULD be deleted: 2
+
+This was a DRY RUN. No targets were deleted.
+To perform actual deletion, run with --no-dry-run
+
+Stale targets:
+  [WOULD DELETE] My Org / my-project (120 days since last import)
+  [WOULD DELETE] My Org / another-project (never imported)
+```
 
 ## Error Handling/Logging
 
-This section explains how the project handles errors and logs important information. It describes the logging mechanism, log file locations, common error messages, and troubleshooting tips. The message content of a log will also be in JSON format so it can easily be parsed.
+The tool provides comprehensive logging with the following levels:
 
-## Troubleshooting
+- **INFO**: Standard operation messages (default)
+- **DEBUG**: Detailed operation messages (enabled with `--verbose`)
+- **WARNING**: Rate limiting and recoverable errors
+- **ERROR**: API failures and critical errors
 
-This section provides solutions to common problems and frequently asked questions.
+All logs are output to stdout with timestamps for easy parsing and redirection.
 
-- **Common Error Messages:** A list of common error messages and their potential causes, along with solutions.
-- **Known Issues:** A list of known issues and any temporary workarounds.
-- **FAQ:** Frequently asked questions and their answers.
-- **Debugging Tips:** Guidance on debugging the project and identifying potential issues.
-- **Dependency Conflicts:** Information on how to resolve dependency conflicts.
+### Common Error Messages
 
-## Deployment
-
-This section provides instructions on how to deploy the project to a production environment.
-
-- **Deployment Environments:** Description of supported deployment environments (e.g., cloud platforms, local servers).
-- **Deployment Steps:** Step-by-step instructions for deploying the project to a chosen environment.
-- **Deployment Configurations:** Information on configuring the project for deployment, including environment variables and configuration files.
-- **Containerization:** Instructions on deploying using containerization technologies like Docker, if applicable.
-- **CI/CD Integration:** Guidance on integrating deployment with Continuous Integration/Continuous Deployment pipelines.
+| Error | Cause | Solution |
+|-------|-------|----------|
+| `SNYK_TOKEN environment variable not set` | Missing API token | Set `SNYK_TOKEN` environment variable |
+| `API request failed: 401` | Invalid or expired token | Verify your Snyk API token |
+| `API request failed: 403` | Insufficient permissions | Ensure token has access to the Group |
+| `Rate limited` | Too many API requests | Tool will automatically retry after waiting |
 
 ## Contributing
 
