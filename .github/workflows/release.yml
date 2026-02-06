@@ -3,7 +3,7 @@ name: Docker Release
 on:
   push:
     tags:
-      - "v*.*.*" # Trigger on any tag matching the pattern vX.Y.Z
+      - "v|V*.*.*"
 
 jobs:
   build_and_publish:
