@@ -3,7 +3,8 @@ name: Docker Release
 on:
   push:
     tags:
-      - "v|V*.*.*"
+      - "v*.*.*"
+      - "V*.*.*"
 
 jobs:
   build_and_publish:
